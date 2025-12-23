@@ -1,5 +1,9 @@
-function PostDetail() {
-  return <>PostDetail</>;
-}
+const PostDetail = () => {
+  return (
+    <div className="">
+      <div className=""></div>
+    </div>
+  );
+};
 
 export default PostDetail;

@@ -2,7 +2,7 @@ import { Outlet } from "react-router";
 
 function DefaultLayout() {
   return (
-    <div>
+    <div className="h-full w-full relative" id="">
       <Outlet />
     </div>
   );
