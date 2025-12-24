@@ -94,7 +94,7 @@ const Home = () => {
   const handleSubmitComment = async (e) => {
     e.preventDefault();
     if (!currentComment.postId) toast.error("postId is empty");
-    console.log(currentComment);
+
     try {
       const response = await commentsServices.addComment(currentComment);
       dispatch(appendComments(response.data));
