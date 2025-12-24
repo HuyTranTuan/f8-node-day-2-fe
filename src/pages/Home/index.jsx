@@ -65,12 +65,11 @@ const Home = () => {
 
   const handleDetele = async (post) => {
     try {
-      await postsServices.deletePost(post.id);
+      const response = await postsServices.deletePost(post.id);
       setCurrentPost({ title: "", content: "" });
-      const response = await postsServices.getPosts();
-      const posts = response.data || [];
 
-      dispatch(setPosts(posts));
+      dispatch(setPosts(response.data.posts));
+      dispatch(setComments(response.data.comments));
       toast.success("Deleted!");
     } catch (error) {
       toast.error("Error delete post:", error);
