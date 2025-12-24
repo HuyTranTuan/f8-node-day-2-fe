@@ -1,0 +1,1 @@
+import{n as e,t}from"./index-CArsJQk4.js";var n=e(t()),r=()=>(0,n.jsx)(`div`,{className:``,children:(0,n.jsx)(`div`,{className:``})});export{r as default};
