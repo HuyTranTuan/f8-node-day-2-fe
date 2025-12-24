@@ -2,131 +2,153 @@ import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner";
 
+import { appendPosts, selectPosts, setPosts } from "@/features/posts";
 import {
-  appendPosts,
-  removePostFromList,
-  selectPosts,
-  setPosts,
-  updatePost,
-} from "@/features/posts";
-import { selectComments, setComments } from "@/features/comments";
+  appendComments,
+  selectComments,
+  setComments,
+} from "@/features/comments";
 import { postsServices, commentsServices } from "@/services";
 import Modal from "@/components/Modal";
+import Button from "@/components/Button";
 
 const Home = () => {
   const dispatch = useDispatch();
   const posts = useSelector(selectPosts);
   const comments = useSelector(selectComments);
 
-  const [postTitle, setPostTitle] = useState("");
   const [isOpen, setIsOpen] = useState(false);
-  const [currentPost, setCurrentPost] = useState({});
+  const [currentPost, setCurrentPost] = useState({ title: "", content: "" });
 
-  const [commentPID, setCommentPID] = useState("");
-  const [commentContent, setCommentContent] = useState("");
   const [isOpenComment, setIsOpenComment] = useState(false);
-  const [currentComment, setCurrentComment] = useState({});
+  const [currentComment, setCurrentComment] = useState({
+    postId: "",
+    content: "",
+  });
 
-  const handleChangeTitle = (e) => {
-    setPostTitle(e.target.value);
-  };
-
+  /////////////////////////////////
+  /////////////POST////////////////
+  /////////////////////////////////
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const postData = {
-      title: postTitle,
-    };
-
+    if (!currentPost.title) toast.error("title is empty");
     try {
-      const response = await postsServices.addPost(postData);
-
-      setPostTitle("");
+      const response = await postsServices.addPost(currentPost);
       dispatch(appendPosts(response.data));
+      setCurrentPost({ title: "", content: "" });
+
+      toast.success("Added post!");
     } catch (error) {
-      console.error("Error adding post:", error);
+      toast.error("Error adding post:", error);
     }
   };
   const handleSubmitEdit = async (e) => {
     e.preventDefault();
-    const postData = {
-      title: postTitle,
-    };
-
+    if (!currentPost.title) toast.error("title is empty");
     try {
-      const response = await postsServices.getPosts(currentPost.id, postData);
+      await postsServices.editPost(currentPost.id, {
+        title: currentPost.title,
+        content: currentPost.content,
+      });
 
-      setPostTitle("");
-      setCurrentPost({});
-      dispatch(updatePost(response.data));
+      const response = await postsServices.getPosts();
+      const posts = response.data || [];
+
+      dispatch(setPosts(posts));
+      setCurrentPost({ title: "", content: "" });
       setIsOpen(false);
+      toast.success("Edited post!");
     } catch (error) {
-      console.error("Error edit post:", error);
-    }
-  };
-
-  const handleSubmitComment = async (e) => {
-    e.preventDefault();
-    const postData = {
-      title: postTitle,
-    };
-
-    try {
-      const response = await postsServices.addPost(postData);
-
-      setPostTitle("");
-      dispatch(appendPosts(response.data));
-    } catch (error) {
-      console.error("Error adding post:", error);
-    }
-  };
-  const handleSubmitEditComment = async (e) => {
-    e.preventDefault();
-    const postData = {
-      title: postTitle,
-    };
-
-    try {
-      const response = await postsServices.getPosts(currentPost.id, postData);
-
-      setPostTitle("");
-      setCurrentPost({});
-      dispatch(updatePost(response.data));
-      setIsOpen(false);
-    } catch (error) {
-      console.error("Error edit post:", error);
+      toast.error("Error edit post:", error);
     }
   };
 
   const handleDetele = async (post) => {
     try {
-      postsServices.getPosts(post.id);
-      dispatch(removePostFromList(post.id));
+      await postsServices.deletePost(post.id);
+      setCurrentPost({ title: "", content: "" });
+      const response = await postsServices.getPosts();
+      const posts = response.data || [];
+
+      dispatch(setPosts(posts));
+      toast.success("Deleted!");
     } catch (error) {
-      console.error("Error delete post:", error);
+      toast.error("Error delete post:", error);
     }
   };
 
   const handleCloseModal = () => {
     setIsOpen(false);
-    setCurrentPost({});
-  };
-
-  const handleCloseModalComment = () => {
     setIsOpenComment(false);
-    setCurrentComment({});
+    setCurrentPost({ title: "", content: "" });
   };
 
   const handleOpen = (post) => {
     setIsOpen(true);
-    selectPosts(post);
-    setPostTitle(post.title);
+    setIsOpenComment(false);
+    setCurrentPost(post);
+  };
+
+  /////////////////////////////////////
+  //////////////Comment////////////////
+  ////////////////////////////////////
+  const handleSubmitComment = async (e) => {
+    e.preventDefault();
+    if (!currentComment.postId) toast.error("postId is empty");
+    console.log(currentComment);
+    try {
+      const response = await commentsServices.addComment(currentComment);
+      dispatch(appendComments(response.data));
+      setCurrentComment({ postId: "", content: "" });
+
+      toast.success("Added comment!");
+    } catch (error) {
+      toast.error("Error adding comment:", error);
+    }
+  };
+  const handleSubmitEditComment = async (e) => {
+    e.preventDefault();
+    try {
+      await commentsServices.editComment(currentComment.id, {
+        content: currentComment.content,
+      });
+
+      const response = await commentsServices.getComments();
+      const comments = response.data || [];
+
+      dispatch(setComments(comments));
+      setCurrentComment({ postId: "", content: "" });
+      setIsOpenComment(false);
+      toast.success("Edited comment!");
+    } catch (error) {
+      toast.error("Error edit comment:", error);
+    }
+  };
+
+  const handleDeteleComment = async (comment) => {
+    try {
+      await commentsServices.deleteComment(comment.id);
+      setCurrentComment({ postId: "", content: "" });
+      const response = await commentsServices.getComments();
+      const comments = response.data || [];
+
+      dispatch(setComments(comments));
+      toast.success("Deleted!");
+    } catch (error) {
+      toast.error("Error delete comment:", error);
+    }
+  };
+
+  const handleCloseModalComment = () => {
+    setIsOpen(false);
+    setIsOpenComment(false);
+    setCurrentComment({ postId: "", content: "" });
   };
 
   const handleOpenComment = (comment) => {
+    setIsOpen(false);
     setIsOpenComment(true);
-    selectComments(comment);
-    setCommentContent(comment.content);
-    setCommentPID(comment.userID);
+    setCurrentComment(comment);
   };
 
   useEffect(() => {
@@ -137,7 +159,7 @@ const Home = () => {
 
         dispatch(setPosts(posts));
       } catch (error) {
-        console.error("Failed to fetch posts:", error);
+        toast.error("Failed to fetch posts:", error);
       }
     })();
     (async () => {
@@ -147,152 +169,42 @@ const Home = () => {
 
         dispatch(setComments(comments));
       } catch (error) {
-        console.error("Failed to fetch comments:", error);
+        toast.error("Failed to fetch comments:", error);
       }
     })();
   }, [dispatch]);
 
   return (
     <div className="w-full h-full p-6">
-      <div className="border border-b-black p-6">
-        <div className="m-auto p-6 w-[80%]">
-          <h1>Post List</h1>
-          <form
-            onSubmit={(e) => handleSubmit(e)}
-            className="flex justify-between"
-          >
-            <div>
-              <label htmlFor="postTitle">Post title:</label>
-              <input
-                id="postTitle"
-                type="text"
-                placeholder="Enter post title"
-                value={postTitle}
-                onInput={handleChangeTitle}
-                className="border border-amber-200"
-              />
-            </div>
-            <button
-              type="submit"
-              className="border border-b-gray-500 bg-gray-400 hover:bg-gray-600 rounded-md px-2 py-1 cursor-pointer"
-            >
-              Add post
-            </button>
-          </form>
-        </div>
-        <ul className="flex flex-col gap-4">
-          {posts.length > 0 ? (
-            posts.map((post) => {
-              return (
-                <li key={post.id} className="w-full flex justify-between">
-                  <div>
-                    <span>{post.id}</span>
-                    <h3>{post.title}</h3>
-                  </div>
-                  <div className="flex gap-0.5">
-                    <button
-                      onClick={() => handleOpen(post)}
-                      className="border border-b-gray-500 bg-gray-400 hover:bg-gray-600 rounded-md px-2 py-1 cursor-pointer"
-                    >
-                      edit
-                    </button>
-                    <button
-                      className="border border-b-gray-500 bg-gray-400 hover:bg-gray-600 rounded-md px-2 py-1 cursor-pointer"
-                      onClick={() => handleDetele(post)}
-                    >
-                      del
-                    </button>
-                  </div>
-                </li>
-              );
-            })
-          ) : (
-            <></>
-          )}
-        </ul>
-      </div>
-      <div className="border border-b-black p-6">
-        <div className="m-auto p-6 w-[80%]">
-          <h1>Comment List</h1>
-          <form
-            onSubmit={(e) => handleSubmit(e)}
-            className="flex justify-between"
-          >
-            <div>
-              <label htmlFor="commentPID">Post ID:</label>
-              <input
-                id="commentPID"
-                type="text"
-                placeholder="Enter post ID"
-                value={commentPID}
-                onInput={handleChangeTitle}
-                className="border border-amber-200 w-full h-10 overflow-y-auto"
-              />
-            </div>
-            <div>
-              <label htmlFor="commentContent">Comment content:</label>
-              <textarea
-                id="commentContent"
-                type="text"
-                placeholder="Enter content"
-                value={commentContent}
-                onInput={handleChangeTitle}
-                className="border border-amber-200 w-full h-10 overflow-y-auto"
-              />
-            </div>
-
-            <button
-              type="submit"
-              className="border border-b-gray-500 bg-gray-400 hover:bg-gray-600 rounded-md px-2 py-1 cursor-pointer"
-            >
-              Add comment
-            </button>
-          </form>
-        </div>
-        <ul className="flex flex-col gap-4">
-          {comments.length > 0 ? (
-            comments.map((comment) => {
-              return (
-                <li key={comment.id} className="w-full flex justify-between">
-                  <div>
-                    <h3>{comment.id}</h3>
-                    <p>{comment.content}</p>
-                  </div>
-                  <div className="flex gap-0.5">
-                    <button
-                      onClick={() => handleOpenComment(comment)}
-                      className="border border-b-gray-500 bg-gray-400 hover:bg-gray-600 rounded-md px-2 py-1 cursor-pointer"
-                    >
-                      edit
-                    </button>
-                    <button
-                      className="border border-b-gray-500 bg-gray-400 hover:bg-gray-600 rounded-md px-2 py-1 cursor-pointer"
-                      onClick={() => handleDetele(comment)}
-                    >
-                      del
-                    </button>
-                  </div>
-                </li>
-              );
-            })
-          ) : (
-            <></>
-          )}
-        </ul>
-      </div>
-      <Modal isOpen={isOpen} onRequestClose={handleCloseModal}>
+      <div className="m-auto p-6 w-[80%]">
+        <h2 className="text-2xl font-bold">Post List</h2>
         <form
-          onSubmit={(e) => handleSubmitEdit(e)}
-          className="flex justify-between"
+          onSubmit={(e) => handleSubmit(e)}
+          className="flex justify-between items-center border border-b-black p-6"
         >
-          <div>
+          <div className="flex flex-col gap-1">
             <label htmlFor="postTitle">Post title:</label>
             <input
               id="postTitle"
               type="text"
               placeholder="Enter post title"
-              value={postTitle}
-              onInput={handleChangeTitle}
+              value={currentPost.title}
+              onInput={(e) =>
+                setCurrentPost({ ...currentPost, title: e.target.value })
+              }
+              className="border border-amber-200"
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label htmlFor="postContent">Post Content:</label>
+            <textarea
+              id="postContent"
+              type="text"
+              placeholder="Enter post content"
+              value={currentPost.content}
+              onInput={(e) =>
+                setCurrentPost({ ...currentPost, content: e.target.value })
+              }
               className="border border-amber-200"
             />
           </div>
@@ -300,14 +212,168 @@ const Home = () => {
             type="submit"
             className="border border-b-gray-500 bg-gray-400 hover:bg-gray-600 rounded-md px-2 py-1 cursor-pointer"
           >
+            Add post
+          </button>
+        </form>
+      </div>
+      <ul className="flex flex-col gap-4">
+        {posts.length > 0 ? (
+          posts.map((post) => {
+            return (
+              <li
+                key={post.id}
+                className="w-[80%] flex justify-between m-auto shadow-lg p-1.5 rounded-md"
+              >
+                <div>
+                  <span>Post id: {post.id}</span>
+                  <h3>Title: {post.title}</h3>
+                  <p>Content: {post.content}</p>
+                </div>
+                <div className="flex gap-0.5">
+                  <Button
+                    className="px-3! h-fit! py-2! border-2 bg-cyan-700 rounded-xl hover:bg-cyan-600!"
+                    onClick={() => handleOpen(post)}
+                  >
+                    Edit
+                  </Button>
+                  <Button
+                    className="px-3! h-fit! py-2! border-2 bg-red-700 rounded-xl hover:bg-red-600!"
+                    onClick={() => handleDetele(post)}
+                  >
+                    Del
+                  </Button>
+                </div>
+              </li>
+            );
+          })
+        ) : (
+          <></>
+        )}
+      </ul>
+      <div className="m-auto p-6 w-[80%]">
+        <h2 className="text-2xl font-bold">Comment List</h2>
+        <form
+          onSubmit={(e) => handleSubmitComment(e)}
+          className="flex justify-between items-center border border-b-black p-6"
+        >
+          <div className="flex flex-col gap-1">
+            <label htmlFor="commentPID">Post ID:</label>
+            <input
+              id="commentPID"
+              type="text"
+              placeholder="Enter post ID"
+              value={currentComment.postId}
+              onInput={(e) =>
+                setCurrentComment({
+                  ...currentComment,
+                  postId: e.target.value,
+                })
+              }
+              className="border border-amber-200 w-full h-10 overflow-y-auto"
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label htmlFor="commentContent">Comment content:</label>
+            <textarea
+              id="commentContent"
+              type="text"
+              placeholder="Enter content"
+              value={currentComment.content}
+              onInput={(e) =>
+                setCurrentComment({
+                  ...currentComment,
+                  content: e.target.value,
+                })
+              }
+              className="border border-amber-200 w-full h-10 overflow-y-auto"
+            />
+          </div>
+
+          <button
+            type="submit"
+            className="border border-b-gray-500 bg-gray-400 hover:bg-gray-600 rounded-md px-2 py-1 cursor-pointer"
+          >
+            Add comment
+          </button>
+        </form>
+      </div>
+      <ul className="flex flex-col gap-4">
+        {comments.length > 0 ? (
+          comments.map((comment) => {
+            return (
+              <li
+                key={comment.id}
+                className="w-[80%] flex justify-between m-auto shadow-lg p-1.5 rounded-md"
+              >
+                <div>
+                  <h3>Comment id: {comment.id}</h3>
+                  <span>Post id: {comment.postId}</span>
+                  <p>Content: {comment.content}</p>
+                </div>
+                <div className="flex gap-0.5">
+                  <Button
+                    onClick={() => handleOpenComment(comment)}
+                    className="px-3! h-fit! py-2! border-2 bg-cyan-700 rounded-xl hover:bg-cyan-600!"
+                  >
+                    Edit
+                  </Button>
+                  <Button
+                    className="px-3! h-fit! py-2! border-2 bg-red-700 rounded-xl hover:bg-red-600!"
+                    onClick={() => handleDeteleComment(comment)}
+                  >
+                    Del
+                  </Button>
+                </div>
+              </li>
+            );
+          })
+        ) : (
+          <></>
+        )}
+      </ul>
+      <Modal isOpen={isOpen} onRequestClose={handleCloseModal}>
+        <form
+          onSubmit={(e) => handleSubmitEdit(e)}
+          className="flex flex-col justify-between gap-2"
+        >
+          <div className="flex flex-col gap-1">
+            <label htmlFor="postTitle">Post title:</label>
+            <input
+              id="postTitle"
+              type="text"
+              placeholder="Enter post title"
+              value={currentPost.title}
+              onInput={(e) =>
+                setCurrentPost({ ...currentPost, title: e.target.value })
+              }
+              className="border border-amber-200"
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label htmlFor="postContent">Post Content:</label>
+            <textarea
+              id="postContent"
+              type="text"
+              placeholder="Enter post content"
+              value={currentPost.content}
+              onInput={(e) =>
+                setCurrentPost({ ...currentPost, content: e.target.value })
+              }
+              className="border border-amber-200"
+            />
+          </div>
+          <button
+            type="submit"
+            className="px-3! h-fit! py-2! border-2 bg-cyan-700 rounded-xl"
+          >
             Edit post
           </button>
         </form>
       </Modal>
       <Modal isOpen={isOpenComment} onRequestClose={handleCloseModalComment}>
         <form
-          onSubmit={(e) => handleSubmitEdit(e)}
-          className="flex justify-between"
+          onSubmit={(e) => handleSubmitEditComment(e)}
+          className="flex flex-col justify-between gap-2"
         >
           <div>
             <label htmlFor="commentContent">Comment content:</label>
@@ -315,14 +381,19 @@ const Home = () => {
               id="commentContent"
               type="text"
               placeholder="Enter content"
-              value={commentContent}
-              onInput={handleChangeTitle}
+              value={currentComment.content}
+              onInput={(e) =>
+                setCurrentComment({
+                  ...currentComment,
+                  content: e.target.value,
+                })
+              }
               className="border border-amber-200 w-full h-10 overflow-y-auto"
             />
           </div>
           <button
             type="submit"
-            className="border border-b-gray-500 bg-gray-400 hover:bg-gray-600 rounded-md px-2 py-1 cursor-pointer"
+            className="px-3! h-fit! py-2! border-2 bg-cyan-700 rounded-xl"
           >
             Edit comment
           </button>

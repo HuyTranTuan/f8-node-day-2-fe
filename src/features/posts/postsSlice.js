@@ -32,7 +32,9 @@ export const postsSlice = createSlice({
     updatePost: (state, action) => {
       state.posts.find((post) => {
         if (post.id === action.payload.id) {
-          return (post.title = action.payload.title);
+          post.title = action.payload.title;
+          post.content = action.payload.content;
+          return post;
         }
       });
     },
